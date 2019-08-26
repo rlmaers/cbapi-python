@@ -5,6 +5,7 @@ import logging
 import json
 
 from cbapi.errors import ServerError
+from builtins import True
 
 log = logging.getLogger(__name__)
 
@@ -162,3 +163,41 @@ class Policy(DefenseMutableModel, CreatableModelMixin):
         self._cb.put_object("{0}/rule/{1}".format(self._build_api_request_uri(), rule_id),
                             {"ruleInfo": new_rule})
         self.refresh()
+
+
+class Alert(NewBaseModel):
+    """
+    Represents a single alert within the service.
+    """
+    urlobject = "/appservices/v6/orgs/{}/alerts/{}"
+    primary_key = "id"
+    swagger_meta_file = "psc/defense/models/base_alert.yaml"
+    
+    def __init__(self, cb, model_unique_id, initial_data=None):
+        if initial_data is not None:
+            item = initial_data
+        elif model_unique_id is not None:
+            url = self.urlobject.format(self._cb.credentials.org_key, model_unique_id)
+            item = cb.get_object(url)
+            
+        model_unique_id = item.get("id")
+        
+        super(Alert, self).__init__(
+            cb,
+            model_unique_id=model_unique_id,
+            initial_data=item,
+            force_init=False,
+            full_doc=True
+        )
+        
+    @classmethod
+    def _query_implementation(cls, cb):
+        pass
+        
+    def _refresh(self):
+        url = self.urlobject.format(self._cb.credentials.org_key, self.id)
+        resp = self.cb.get_object(url)
+        self._info = resp
+        return True
+    
+    
